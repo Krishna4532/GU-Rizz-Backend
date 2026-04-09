@@ -32,21 +32,39 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
   contentSecurityPolicy: false,
 }));
-app.use(cors({
+
+// ── CORS — allowed origins ─────────────────────────────────
+// HARDCODED production origin + local dev origins.
+// CLIENT_URL in .env can override/extend but these two are always present.
+const ALLOWED_ORIGINS = [
+  'https://gu-rizz.vercel.app',       // ← production Vercel frontend
+  'http://localhost:5173',             // ← local Vite dev server
+  'http://localhost:3000',             // ← alternative local dev
+  'http://127.0.0.1:5173',            // ← Vite via IP
+  process.env.CLIENT_URL,             // ← any extra origin from .env
+].filter(Boolean);                     // removes undefined if CLIENT_URL unset
+
+const corsOptions = {
   origin: (origin, callback) => {
-    const allowed = [
-      process.env.CLIENT_URL,
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://127.0.0.1:5173',
-    ].filter(Boolean);
-    if (!origin || allowed.includes(origin)) callback(null, true);
-    else callback(new Error(`CORS blocked: ${origin}`));
+    // Allow server-to-server / Postman requests that have no Origin header
+    if (!origin) return callback(null, true);
+    if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS blocked: ${origin}`));
   },
-  credentials: true,
+  credentials: true,                   // allow cookies + Authorization header
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],      // lets the browser read auth cookies
+  optionsSuccessStatus: 200,           // some older browsers choke on 204
+};
+
+app.use(cors(corsOptions));
+
+// ── PREFLIGHT — handle OPTIONS for every route explicitly ──
+// Required so signup, /auth/me, and other non-GET routes
+// don't fail with "Response to preflight request doesn't pass
+// access control check" in Chrome/Safari.
+app.options('*', cors(corsOptions));
 
 // ── GENERAL MIDDLEWARE ─────────────────────────────────────
 app.use(compression());
