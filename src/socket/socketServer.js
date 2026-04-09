@@ -13,7 +13,15 @@ const sparkQueue = [];
 const initSocket = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: process.env.CLIENT_URL || 'http://localhost:5173',
+      // Must mirror the Express CORS list exactly so the WS upgrade
+      // handshake is accepted from the Vercel frontend.
+      origin: [
+        'https://gu-rizz.vercel.app',   // ← production Vercel frontend
+        'http://localhost:5173',         // ← local Vite dev server
+        'http://localhost:3000',
+        'http://127.0.0.1:5173',
+        process.env.CLIENT_URL,         // ← optional .env override
+      ].filter(Boolean),
       methods: ['GET', 'POST'],
       credentials: true,
     },
