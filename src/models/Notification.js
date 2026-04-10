@@ -1,6 +1,4 @@
 
-Copy
-
 // src/models/Notification.js
 // Updated: adds actorUsername for deep-link routing without extra DB lookup.
 const mongoose = require('mongoose');
