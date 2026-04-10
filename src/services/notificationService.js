@@ -1,4 +1,3 @@
-Copy
 
 // src/services/notificationService.js
 // Updated: stores actorUsername so the frontend can do deep-link routing
