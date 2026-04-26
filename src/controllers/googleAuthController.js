@@ -50,29 +50,38 @@ exports.googleAuth = async (req, res) => {
     let isNewUser = false;
 
     if (!user) {
-      // New user — create account from Google profile
-      // Generate a username from their name
-      const baseUsername = name
+      // ── NEW USER via Google ───────────────────────────────
+      // Step 1: Generate a unique username from their Google display name.
+      // Strip non-alphanumeric chars, lowercase, cap at 18 chars,
+      // then append a number if that username is already taken.
+      const base = (name || 'user')
         .toLowerCase()
-        .replace(/[^a-z0-9]/g, '_')
-        .slice(0, 20);
-      let username = baseUsername;
+        .replace(/[^a-z0-9]/g, '_')   // replace spaces/special chars with _
+        .replace(/_{2,}/g, '_')        // collapse multiple underscores
+        .replace(/^_|_$/g, '')         // trim leading/trailing underscores
+        .slice(0, 18) || 'user';       // fallback to 'user' if name is empty
+
+      let username = base;
       let counter  = 1;
+      // Keep trying username, username1, username2 ... until one is free
       while (await User.findOne({ username })) {
-        username = baseUsername + counter++;
+        username = base + counter++;
       }
 
+      // Step 2: Create the user document.
+      // NO password field — the conditional validator in User.js
+      // skips the password requirement when googleId is present.
       user = await User.create({
         name:            name,
         username,
         personalEmail:   email.toLowerCase(),
         googleId,
         profileImageURL: picture || null,
-        password:        require('crypto').randomBytes(32).toString('hex'), // unusable random password
-        isEmailVerified: true,   // Google verified this email
+        // password intentionally omitted — Google users authenticate via token only
+        isEmailVerified: true,   // Google already verified this email
         color:           '#c0132a',
         rizzPoints:      0,
-        isVibeComplete:  false,  // They'll complete profile in About section
+        isVibeComplete:  false,  // user fills profile in About section after signup
       });
 
       isNewUser = true;
