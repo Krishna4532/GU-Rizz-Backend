@@ -32,6 +32,7 @@
     "node-cron": "^3.0.3",
     "redis": "^4.6.11",
     "ioredis": "^5.3.2"
+    "google-auth-library": "^9.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
